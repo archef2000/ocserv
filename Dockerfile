@@ -42,7 +42,6 @@ RUN buildDeps=" \
 	&& rm ocserv.tar.xz*
 
 RUN cd /usr/src/ocserv \
-	&& apk add curl-dev\
 	&& ./configure --with-liboath\
 	&& make \
 	&& make install \
