@@ -182,7 +182,7 @@ EOSRV
     # Create a test user
     if [ -z "$NO_TEST_USER" ] && [ ! -f ${ocserv_dir}ocpasswd ]; then
             echo "::: Creating test user 'test' with password 'test'"
-            echo '::: test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
+            echo 'test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
     fi
 fi
 
