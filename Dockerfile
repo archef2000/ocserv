@@ -57,7 +57,7 @@ RUN cd /usr/src/ocserv \
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
-RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate runit \
+RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate runit libseccomp\
 	&& rm -rf /var/cache/apk/* 
 
 RUN update-ca-certificates
@@ -68,8 +68,7 @@ WORKDIR /config
 
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/bin/bash","/entrypoint.sh"]
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 4443
 EXPOSE 4443/udp
-CMD ["ocserv", "-c", "/config/ocserv.conf", "-f"]
+CMD ["ocserv", "-c", "/etc/ocserv/ocserv.conf", "-f"]
