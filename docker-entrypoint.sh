@@ -40,7 +40,7 @@ fi
 
 if [ ! -e ${ocserv_dir}ocserv.conf ] || [ ! -e ${ocserv_dir}connect.sh ] || [ ! -e ${ocserv_dir}disconnect.sh ]; then
 	echo "::: Default config loaded."
-	cp -R -n "./etc/default/ocserv" "./etc/"
+	cp -R -n "/etc/default/ocserv" "/etc/"
 fi
 chmod a+x ${ocserv_dir}*.sh
 
