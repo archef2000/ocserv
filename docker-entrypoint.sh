@@ -1,4 +1,4 @@
-ocserv_dir=./etc/ocserv/
+ocserv_dir=/etc/ocserv/
 get_config_line(){
     echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
 }
@@ -118,13 +118,12 @@ if [ -f ${ocserv_dir}ocserv.conf ]; then
     if [ ! -z "${server_cert_path_temp}" ]; then
         server_cert_path=$server_cert_path_temp
     else
-        echo $server_cert_path
         echo "server-cert = $server_cert_path" >> ${ocserv_dir}ocserv.conf
     fi
     if [ ! -z "${server_key_path_temp}" ]; then
         server_key_path=$server_key_path_temp
     else
-        echo hihi
+        echo "server-key = $server_key_path" >> ${ocserv_dir}ocserv.conf
     fi
 fi
 
