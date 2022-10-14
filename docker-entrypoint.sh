@@ -1,3 +1,4 @@
+#!/bin/bash
 ocserv_dir=/etc/ocserv/
 get_config_line(){
     echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
