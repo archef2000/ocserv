@@ -69,7 +69,7 @@ WORKDIR /config
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/bin/bash","/entrypoint.sh"]
-
+ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 4443
 EXPOSE 4443/udp
 CMD ["ocserv", "-c", "/config/ocserv.conf", "-f"]
