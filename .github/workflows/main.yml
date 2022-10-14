@@ -22,5 +22,4 @@ jobs:
       env:
         DOCKER_USER: ${{ secrets.DOCKER_USER }}   
       run: |
-        apt update && apt isntall unix2dos && unix2dos docker-entrypoint.sh
         docker buildx build . -t $DOCKER_USER/ocserv:latest --platform linux/arm64,linux/arm/v6,linux/amd64 --push
