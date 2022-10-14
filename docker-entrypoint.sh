@@ -41,10 +41,8 @@ if [ ! -e ${ocserv_dir}ocserv.conf ] || [ ! -e ${ocserv_dir}connect.sh ] || [ ! 
 	echo "::: Default config loaded."
 	cp -R -n "./etc/default/ocserv" "./etc/"
 fi
-
 chmod a+x ${ocserv_dir}*.sh
 
-LISTEN_PORT=6777
 LISTEN_PORT=$(echo "${LISTEN_PORT}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~;s/[^0-9]*//g;s/^0*//')
 if [ -z "${LISTEN_PORT}" ]; then
     echo "::: LISTEN_PORT not defined, defaulting to '443'"
