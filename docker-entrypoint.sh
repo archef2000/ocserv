@@ -1,75 +1,191 @@
-#!/bin/sh
+ocserv_dir=./etc/ocserv/
+get_config_line(){
+    echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
+}
 
-if [ ! -f /etc/ocserv/certs/server-key.pem ] || [ ! -f /etc/ocserv/certs/server-cert.pem ]; then
-        # Check environment variables
-        if [ -z "$CA_CN" ]; then
-                CA_CN="VPN CA"
-        fi
+set_config(){
+    option=$1
+    value=$2
+    option_line=$(get_config_line $option)
+    option_line=${option_line##* }
+    if [ ! -z "${option_line}" ]; then
+        sed -i "${option_line}s/.*/${option} = ${value}/" ${ocserv_dir}ocserv.conf
+    else
+        echo "${option} = ${value}" >> ${ocserv_dir}ocserv.conf
+    fi
+}
 
-        if [ -z "$CA_ORG" ]; then
-                CA_ORG="My Organization"
-        fi
+run_server(){
+    # Open ipv4 ip forward
+    sysctl -w net.ipv4.ip_forward=1
+    # Enable NAT forwarding
+    iptables -t nat -A POSTROUTING -j MASQUERADE
+    iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+    # Enable TUN device
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200
+    chmod 600 /dev/net/tun
+    # Run OpennConnect Server
+    exec "$@";
+}
 
-        if [ -z "$CA_DAYS" ]; then
-                CA_DAYS=9999
-        fi
-
-        if [ -z "$SRV_CN" ]; then
-                SRV_CN="www.example.com"
-        fi
-
-        if [ -z "$SRV_ORG" ]; then
-                SRV_ORG="My Company"
-        fi
-
-        if [ -z "$SRV_DAYS" ]; then
-                SRV_DAYS=9999
-        fi
-
-        # No certification found, generate one
-        mkdir /etc/ocserv/certs
-        cd /etc/ocserv/certs
-        certtool --generate-privkey --outfile ca-key.pem
-        cat << EOCA > ca.tmpl
-        cn = "$CA_CN"
-        organization = "$CA_ORG"
-        serial = 1
-        expiration_days = $CA_DAYS
-        ca
-        signing_key
-        cert_signing_key
-        crl_signing_key
-        EOCA
-        certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca.pem
-        certtool --generate-privkey --outfile server-key.pem 
-        cat > server.tmpl <<-EOSRV
-        cn = "$SRV_CN"
-        organization = "$SRV_ORG"
-        expiration_days = $SRV_DAYS
-        signing_key
-        encryption_key
-        tls_www_server
-        EOSRV
-        certtool --generate-certificate --load-privkey server-key.pem --load-ca-certificate ca.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
-
-        # Create a test user
-        if [ -z "$NO_TEST_USER" ] && [ ! -f /etc/ocserv/data/ocpasswd ]; then
-                echo "Creating test user 'test' with password 'test'"
-                echo 'test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > /etc/ocserv/data/ocpasswd
-        fi
+if [ "$POWER_MODE" = "TRUE" ]; then
+	echo "::: POWER MODE activated"
+	run_server $@
+else
+	POWER_MODE="FALSE"
 fi
 
-# Open ipv4 ip forward
-sysctl -w net.ipv4.ip_forward=1
 
-# Enable NAT forwarding
-iptables -t nat -A POSTROUTING -j MASQUERADE
-iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+if [ ! -e ${ocserv_dir}ocserv.conf ] || [ ! -e ${ocserv_dir}connect.sh ] || [ ! -e ${ocserv_dir}disconnect.sh ]; then
+	echo "::: Default config loaded."
+	cp -R -n "./etc/default/ocserv" "./etc/"
+fi
 
-# Enable TUN device
-mkdir -p /dev/net
-mknod /dev/net/tun c 10 200
-chmod 600 /dev/net/tun
+chmod a+x ${ocserv_dir}*.sh
 
-# Run OpennConnect Server
-exec "$@";
+LISTEN_PORT=6777
+LISTEN_PORT=$(echo "${LISTEN_PORT}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~;s/[^0-9]*//g;s/^0*//')
+if [ -z "${LISTEN_PORT}" ]; then
+    echo "::: LISTEN_PORT not defined, defaulting to '443'"
+    LISTEN_PORT=443
+else
+    if [ "$LISTEN_PORT" -gt "65535" ]; then
+        echo "::: Specified port out of range, defaulting to '443'"
+        LISTEN_PORT=443
+    else
+        echo "::: Defined LISTEN_PORT as '${LISTEN_PORT}'"
+        echo "::: Make sure you expose the port you selected!"
+    fi
+fi
+set_config tcp-port "${LISTEN_PORT}"
+set_config udp-port "${LISTEN_PORT}"
+
+SPLIT_DNS_DOMAINS=$(echo "${SPLIT_DNS_DOMAINS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+sed -i '/^split-dns =/d' ${ocserv_dir}ocserv.conf
+if [ ! -z "${SPLIT_DNS_DOMAINS}" ]; then
+	sed -i '/^split-dns =/d' ${ocserv_dir}ocserv.conf
+	IFS=',' read -ra split_domain_list <<< "${SPLIT_DNS_DOMAINS}"
+	for split_domain_item in "${split_domain_list[@]}"; do
+		DOMDUP=$(cat ${ocserv_dir}ocserv.conf | grep "split-dns = ${split_domain_item}")
+		if [[ -z "$DOMDUP" ]]; then
+			split_domain_item=$(echo "${split_domain_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+			echo "::: Defined SPLIT_DNS_DOMAIN as "${split_domain_item}""
+			echo "split-dns = ${split_domain_item}" >> ${ocserv_dir}ocserv.conf
+		fi
+	done
+else
+	echo "::: SPLIT_DNS_DOMAINS not defined"
+fi
+
+TUNNEL_MODE=$(echo "${TUNNEL_MODE}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+sed -i '/^route =/d' ${ocserv_dir}ocserv.conf
+if [ "${TUNNEL_MODE}" = "all" ]; then
+	echo "::: TUNNEL_MODE defined as 'all', ignoring TUNNEL_ROUTES. If you want to define specific routes, change TUNNEL_MODE to split-include"
+	echo "route = default" >> ${ocserv_dir}ocserv.conf
+elif [ "${TUNNEL_MODE}" = "split-include" ]; then
+    TUNNEL_ROUTES=$(echo "${TUNNEL_ROUTES}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	if [ ! -z "${TUNNEL_ROUTES}" ]; then
+		echo "::: TUNNEL_ROUTES defined as '${TUNNEL_ROUTES}'"
+        echo "$TUNNEL_ROUTES" | IFS=',' read -a myarray
+        IFS=', ' read -r -a routes_array <<< "$TUNNEL_ROUTES"
+        for route in "${routes_array[@]}"
+        do
+            echo "route = ${route}" >> ${ocserv_dir}ocserv.conf
+        done		
+	else
+		echo "::: No TUNNEL_ROUTES defined, but TUNNEL_MODE is defined as split-include, defaulting to 'all'"
+		echo "route = default" >> ${ocserv_dir}ocserv.conf
+	fi
+else
+	echo "::: TUNNEL_MODE not defined, defaulting to 'all'"
+	echo "route = default" >> ${ocserv_dir}ocserv.conf
+fi
+
+DNS_SERVERS=$(echo "${DNS_SERVERS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+if [ ! -z "${DNS_SERVERS}" ]; then
+	echo "::: DNS_SERVERS defined as '${DNS_SERVERS}'"
+else
+	echo "::: DNS_SERVERS not defined, defaulting to Cloudflare and Google name servers"
+	DNS_SERVERS="1.1.1.1,8.8.8.8,1.0.0.1,8.8.4.4"
+fi
+set_config dns "${DNS_SERVERS}"
+
+server_cert_path=${ocserv_dir}certs/server-cert.pem
+server_key_path=${ocserv_dir}certs/server-key.pem
+cert_dir=${ocserv_dir}certs
+if [ -f ${ocserv_dir}ocserv.conf ]; then
+    server_cert_path_temp="$(grep "^server-cert*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
+    server_key_path_temp="$(grep "^server-key*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
+    if [ ! -z "${server_cert_path_temp}" ]; then
+        server_cert_path=$server_cert_path_temp
+    else
+        echo $server_cert_path
+        echo "server-cert = $server_cert_path" >> ${ocserv_dir}ocserv.conf
+    fi
+    if [ ! -z "${server_key_path_temp}" ]; then
+        server_key_path=$server_key_path_temp
+    else
+        echo hihi
+    fi
+fi
+
+mkdir -p ${ocserv_dir}certs
+if [ ! -f $server_key_path ] || [ ! -f $server_cert_path ]; then
+    if [ -z "$CA_CN" ]; then
+            CA_CN="VPN CA"
+    fi
+
+    if [ -z "$CA_ORG" ]; then
+            CA_ORG="My Organization"
+    fi
+
+    if [ -z "$CA_DAYS" ]; then
+            CA_DAYS=9999
+    fi
+
+    if [ -z "$SRV_CN" ]; then
+            SRV_CN="www.example.com"
+    fi
+
+    if [ -z "$SRV_ORG" ]; then
+            SRV_ORG="My Company"
+    fi
+
+    if [ -z "$SRV_DAYS" ]; then
+            SRV_DAYS=9999
+    fi
+
+    # No certification found, generate one
+    certtool --generate-privkey --outfile $cert_dir/ca-key.pem
+    cat > /tmp/ca.tmpl <<-EOCA
+    cn = "$CA_CN"
+
+    organization = "$CA_ORG"
+    serial = 1
+    expiration_days = $CA_DAYS
+    ca
+    signing_key
+    cert_signing_key
+    crl_signing_key
+EOCA
+    certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
+    certtool --generate-privkey --outfile $server_key_path
+    cat > /tmp/server.tmpl <<-EOSRV
+    cn = "$SRV_CN"
+    organization = "$SRV_ORG"
+    expiration_days = $SRV_DAYS
+    signing_key
+    encryption_key
+    tls_www_server
+EOSRV
+    certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem --load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
+
+    # Create a test user
+    if [ -z "$NO_TEST_USER" ] && [ ! -f ${ocserv_dir}ocpasswd ]; then
+            echo "::: Creating test user 'test' with password 'test'"
+            echo '::: test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
+    fi
+fi
+
+run_server $@
