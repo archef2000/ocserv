@@ -1,6 +1,5 @@
 FROM alpine:latest
 ENV OC_VERSION=1.1.6
-VOLUME /config
 
 # Install dependencies
 RUN buildDeps=" \
@@ -64,7 +63,7 @@ RUN update-ca-certificates
 
 ADD ocserv /etc/default/ocserv
 ADD ocserv /etc/ocserv
-
+RUN chmod a+x /etc/ocserv/*.sh /etc/default/ocserv/*.sh
 
 WORKDIR /config
 
