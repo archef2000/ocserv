@@ -63,6 +63,8 @@ RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate
 RUN update-ca-certificates
 
 ADD ocserv /etc/default/ocserv
+ADD ocserv /etc/ocserv
+
 
 WORKDIR /config
 
