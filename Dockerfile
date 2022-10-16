@@ -1,4 +1,4 @@
-FROM alpine:latest
+FROM alpine:3.16
 ENV OC_VERSION=1.1.6
 
 # Install dependencies
