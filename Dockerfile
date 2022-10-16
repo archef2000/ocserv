@@ -65,7 +65,7 @@ ADD ocserv /etc/default/ocserv
 ADD ocserv /etc/ocserv
 RUN chmod a+x /etc/ocserv/*.sh /etc/default/ocserv/*.sh
 
-WORKDIR /config
+WORKDIR /etc/ocserv
 
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
