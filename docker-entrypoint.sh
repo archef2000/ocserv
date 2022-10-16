@@ -1,4 +1,5 @@
 #!/bin/bash
+# #https://github.com/MarkusMcNugen/docker-openconnect/blob/master/docker-entrypoint.sh#L95
 ocserv_dir=/etc/ocserv/
 get_config_line(){
     echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
@@ -28,6 +29,78 @@ run_server(){
     chmod 600 /dev/net/tun
     # Run OpennConnect Server
     exec "$@";
+}
+
+generate_cert(){
+    server_cert_path=${ocserv_dir}certs/server-cert.pem
+    server_key_path=${ocserv_dir}certs/server-key.pem
+    cert_dir=${ocserv_dir}certs
+    if [ -f ${ocserv_dir}ocserv.conf ]; then
+        server_cert_path_temp="$(grep "^server-cert*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
+        server_key_path_temp="$(grep "^server-key*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
+        if [ ! -z "${server_cert_path_temp}" ]; then
+            server_cert_path=$server_cert_path_temp
+        else
+            echo "server-cert = $server_cert_path" >> ${ocserv_dir}ocserv.conf
+        fi
+        if [ ! -z "${server_key_path_temp}" ]; then
+            server_key_path=$server_key_path_temp
+        else
+            echo "server-key = $server_key_path" >> ${ocserv_dir}ocserv.conf
+        fi
+    fi
+    
+    mkdir -p ${ocserv_dir}certs
+    if [ ! -f $server_key_path ] || [ ! -f $server_cert_path ]; then
+        if [ -z "$CA_CN" ]; then
+                CA_CN="VPN CA"
+        fi
+    
+        if [ -z "$CA_ORG" ]; then
+                CA_ORG="My Organization"
+        fi
+    
+        if [ -z "$CA_DAYS" ]; then
+                CA_DAYS=9999
+        fi
+    
+        if [ -z "$SRV_CN" ]; then
+                SRV_CN="www.example.com"
+        fi
+    
+        if [ -z "$SRV_ORG" ]; then
+                SRV_ORG="My Company"
+        fi
+    
+        if [ -z "$SRV_DAYS" ]; then
+                SRV_DAYS=9999
+        fi
+    
+        # No certification found, generate one
+        certtool --generate-privkey --outfile $cert_dir/ca-key.pem
+        cat > /tmp/ca.tmpl <<-EOCA
+        cn = "$CA_CN"
+    
+        organization = "$CA_ORG"
+        serial = 1
+        expiration_days = $CA_DAYS
+        ca
+        signing_key
+        cert_signing_key
+        crl_signing_key
+EOCA
+        certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
+        certtool --generate-privkey --outfile $server_key_path
+        cat > /tmp/server.tmpl <<-EOSRV
+        cn = "$SRV_CN"
+        organization = "$SRV_ORG"
+        expiration_days = $SRV_DAYS
+        signing_key
+        encryption_key
+        tls_www_server
+EOSRV
+        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem --load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
+    fi
 }
 
 if [ "$POWER_MODE" = "TRUE" ]; then
@@ -110,80 +183,8 @@ else
 fi
 set_config dns "${DNS_SERVERS}"
 
-server_cert_path=${ocserv_dir}certs/server-cert.pem
-server_key_path=${ocserv_dir}certs/server-key.pem
-cert_dir=${ocserv_dir}certs
-if [ -f ${ocserv_dir}ocserv.conf ]; then
-    server_cert_path_temp="$(grep "^server-cert*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
-    server_key_path_temp="$(grep "^server-key*" ${ocserv_dir}ocserv.conf | tail -1 | sed -e 's#.*=\(\)#\1#;s/^[ \t]*//;s/#.*//')"
-    if [ ! -z "${server_cert_path_temp}" ]; then
-        server_cert_path=$server_cert_path_temp
-    else
-        echo "server-cert = $server_cert_path" >> ${ocserv_dir}ocserv.conf
-    fi
-    if [ ! -z "${server_key_path_temp}" ]; then
-        server_key_path=$server_key_path_temp
-    else
-        echo "server-key = $server_key_path" >> ${ocserv_dir}ocserv.conf
-    fi
+if [ -z "$NO_TEST_USER" ] && [ ! -f ${ocserv_dir}ocpasswd ]; then
+        echo "::: Creating test user 'test' with password 'test'"
+        echo 'test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
 fi
-
-mkdir -p ${ocserv_dir}certs
-if [ ! -f $server_key_path ] || [ ! -f $server_cert_path ]; then
-    if [ -z "$CA_CN" ]; then
-            CA_CN="VPN CA"
-    fi
-
-    if [ -z "$CA_ORG" ]; then
-            CA_ORG="My Organization"
-    fi
-
-    if [ -z "$CA_DAYS" ]; then
-            CA_DAYS=9999
-    fi
-
-    if [ -z "$SRV_CN" ]; then
-            SRV_CN="www.example.com"
-    fi
-
-    if [ -z "$SRV_ORG" ]; then
-            SRV_ORG="My Company"
-    fi
-
-    if [ -z "$SRV_DAYS" ]; then
-            SRV_DAYS=9999
-    fi
-
-    # No certification found, generate one
-    certtool --generate-privkey --outfile $cert_dir/ca-key.pem
-    cat > /tmp/ca.tmpl <<-EOCA
-    cn = "$CA_CN"
-
-    organization = "$CA_ORG"
-    serial = 1
-    expiration_days = $CA_DAYS
-    ca
-    signing_key
-    cert_signing_key
-    crl_signing_key
-EOCA
-    certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
-    certtool --generate-privkey --outfile $server_key_path
-    cat > /tmp/server.tmpl <<-EOSRV
-    cn = "$SRV_CN"
-    organization = "$SRV_ORG"
-    expiration_days = $SRV_DAYS
-    signing_key
-    encryption_key
-    tls_www_server
-EOSRV
-    certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem --load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
-
-    # Create a test user
-    if [ -z "$NO_TEST_USER" ] && [ ! -f ${ocserv_dir}ocpasswd ]; then
-            echo "::: Creating test user 'test' with password 'test'"
-            echo 'test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
-    fi
-fi
-
 run_server $@
