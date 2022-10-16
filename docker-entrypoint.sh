@@ -1,5 +1,4 @@
 #!/bin/bash
-# #https://github.com/MarkusMcNugen/docker-openconnect/blob/master/docker-entrypoint.sh#L95
 ocserv_dir=/etc/ocserv/
 get_config_line(){
     echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
@@ -65,7 +64,7 @@ generate_cert(){
         fi
     
         if [ -z "$SRV_CN" ]; then
-                SRV_CN="www.example.com"
+                SRV_CN="example.com"
         fi
     
         if [ -z "$SRV_ORG" ]; then
