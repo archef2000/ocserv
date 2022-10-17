@@ -91,7 +91,7 @@ EOCA
         certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
         certtool --generate-privkey --outfile $server_key_path
         cat > /tmp/server.tmpl <<-EOSRV
-        cn = "$DOMAIN"
+        cn = "$SRV_CN"
         organization = "$SRV_ORG"
         expiration_days = $SRV_DAYS
         signing_key
@@ -104,6 +104,7 @@ EOSRV
 
 if [ "$POWER_MODE" = "TRUE" ]; then
 	echo "::: POWER MODE activated"
+	generate_cert
 	run_server $@
 else
 	POWER_MODE="FALSE"
@@ -133,6 +134,7 @@ fi
 set_config tcp-port "${LISTEN_PORT}"
 set_config udp-port "${LISTEN_PORT}"
 
+
 DOMAIN=$(echo "${DOMAIN}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 if [ -z "${DOMAIN}" ]; then
     echo "::: LISTEN_PORT not defined, defaulting to '443'"
@@ -145,7 +147,6 @@ set_config default-domain "${DOMAIN}"
 SPLIT_DNS_DOMAINS=$(echo "${SPLIT_DNS_DOMAINS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 sed -i '/^split-dns =/d' ${ocserv_dir}ocserv.conf
 if [ ! -z "${SPLIT_DNS_DOMAINS}" ]; then
-	sed -i '/^split-dns =/d' ${ocserv_dir}ocserv.conf
 	IFS=',' read -ra split_domain_list <<< "${SPLIT_DNS_DOMAINS}"
 	for split_domain_item in "${split_domain_list[@]}"; do
 		DOMDUP=$(cat ${ocserv_dir}ocserv.conf | grep "split-dns = ${split_domain_item}")
@@ -190,10 +191,27 @@ else
 	echo "::: DNS_SERVERS not defined, defaulting to Cloudflare and Google name servers"
 	DNS_SERVERS="1.1.1.1,8.8.8.8,1.0.0.1,8.8.4.4"
 fi
-set_config dns "${DNS_SERVERS}"
 
-if [ -z "$NO_TEST_USER" ] && [ ! -f ${ocserv_dir}ocpasswd ]; then
-        echo "::: Creating test user 'test' with password 'test'"
-        echo 'test:*:$5$DktJBFKobxCFd7wN$sn.bVw8ytyAaNamO.CvgBvkzDiFR6DaHdUzcif52KK7' > ${ocserv_dir}ocpasswd
-fi
+sed -i '/^dns =/d' ${ocserv_dir}ocserv.conf
+IFS=',' read -ra dns_servers_list <<< "${DNS_SERVERS}"
+for dns_server in "${split_domain_list[@]}"; do
+	split_domain_item=$(echo "${dns_server}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	echo "dns = ${dns_server}" >> ${ocserv_dir}ocserv.conf
+done
+
+username=USER
+password=PASS
+N=10
+for (( counter=1; counter<=N; counter++ ))
+do
+    echo "DEBUG: ${!username}"
+    if [[ -n ${!username} ]]
+    then
+        echo "Adding user ${!username}"
+        ocpasswd -c ${ocserv_dir}ocpasswd -g "Route,All" ${!username}<<< "${!password}"
+    fi
+    username=USER_${counter}
+    password=PASS_${counter}    
+done
+
 run_server $@
