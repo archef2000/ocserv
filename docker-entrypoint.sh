@@ -204,7 +204,6 @@ password=PASS
 N=10
 for (( counter=1; counter<=N; counter++ ))
 do
-    echo "DEBUG: ${!username}"
     if [[ -n ${!username} ]]
     then
         echo "Adding user ${!username}"
