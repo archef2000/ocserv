@@ -63,8 +63,8 @@ generate_cert(){
                 CA_DAYS=9999
         fi
     
-        if [ -z "$SRV_CN" ]; then
-                SRV_CN="example.com"
+        if [ -z "$DOMAIN" ]; then
+                DOMAIN="example.com"
         fi
     
         if [ -z "$SRV_ORG" ]; then
@@ -91,7 +91,7 @@ EOCA
         certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
         certtool --generate-privkey --outfile $server_key_path
         cat > /tmp/server.tmpl <<-EOSRV
-        cn = "$SRV_CN"
+        cn = "$DOMAIN"
         organization = "$SRV_ORG"
         expiration_days = $SRV_DAYS
         signing_key
@@ -131,6 +131,15 @@ else
 fi
 set_config tcp-port "${LISTEN_PORT}"
 set_config udp-port "${LISTEN_PORT}"
+
+DOMAIN=$(echo "${DOMAIN}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+if [ -z "${DOMAIN}" ]; then
+    echo "::: LISTEN_PORT not defined, defaulting to '443'"
+    DOMAIN=443
+else
+    echo "::: Defined DOMAIN as '${DOMAIN}'"
+fi
+set_config default-domain "${DOMAIN}"
 
 SPLIT_DNS_DOMAINS=$(echo "${SPLIT_DNS_DOMAINS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 sed -i '/^split-dns =/d' ${ocserv_dir}ocserv.conf
