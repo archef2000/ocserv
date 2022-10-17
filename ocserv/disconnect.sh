@@ -18,4 +18,4 @@
 # STATS_BYTES_OUT, STATS_DURATION that contain a 64-bit counter of the bytes
 # output from the tun device, and the duration of the session in seconds.
 
-echo "$(date) [info] User ${USERNAME} Disconnected - Bytes In: ${STATS_BYTES_IN} Bytes Out: ${STATS_BYTES_OUT} Duration:${STATS_DURATION}"
+echo "$(date) User ${USERNAME} Disconnected - Bytes In: ${STATS_BYTES_IN} Bytes Out: ${STATS_BYTES_OUT} Duration:${STATS_DURATION}"
