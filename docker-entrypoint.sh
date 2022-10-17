@@ -115,6 +115,7 @@ if [ ! -e ${ocserv_dir}ocserv.conf ] || [ ! -e ${ocserv_dir}connect.sh ] || [ ! 
 	cp -R -n "/etc/default/ocserv" "/etc/"
 fi
 chmod a+x ${ocserv_dir}*.sh
+generate_cert
 
 LISTEN_PORT=$(echo "${LISTEN_PORT}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~;s/[^0-9]*//g;s/^0*//')
 if [ -z "${LISTEN_PORT}" ]; then
