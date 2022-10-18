@@ -98,7 +98,8 @@ EOCA
         encryption_key
         tls_www_server
 EOSRV
-        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem --load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
+        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem \
+	--load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
     fi
 }
 
@@ -206,7 +207,7 @@ for (( counter=1; counter<=N; counter++ ))
 do
     if [[ -n ${!username} ]]
     then
-        echo "Adding user ${!username}"
+        echo "::: Adding user ${!username}"
         ocpasswd -c ${ocserv_dir}ocpasswd -g "Route,All" ${!username}<<< "${!password}"
     fi
     username=USER_${counter}
