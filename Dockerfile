@@ -49,7 +49,6 @@ RUN curl -L https://s3.amazonaws.com/archie-public/mod-authn-otp/mod_authn_otp-1
     && ls \
     && cd mod_authn_otp-1.1.10 \
     && ls \
-    && ./autogen.sh \
     && ./configure \
     && make \
     && cp genotpurl /usr/local/bin/ \
