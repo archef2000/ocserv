@@ -33,6 +33,9 @@ RUN buildDeps=" \
 		tar \
 		tpm2-tss-esys \
 		xz \
+		tar \
+		apache2-dev \
+        	openssl-dev \
 	"; \
 	set -x \
 	&& apk add --update --virtual .build-deps $buildDeps \
@@ -41,8 +44,16 @@ RUN buildDeps=" \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
 	&& rm ocserv.tar.xz*
 
+RUN wget https://github.com/archiecobbs/mod-authn-otp/archive/refs/tags/1.1.10.tar.gz -o authn-otp.tar.gz \
+    && tar -xvzf authn-otp.tar.gz \
+    && cd authn-otp \
+    && ./configure \
+    && make \
+    && cp genotpurl /usr/local/bin/ \
+    && chmod +x /usr/local/bin/genotpurl
+
 RUN cd /usr/src/ocserv \
-	&& ./configure --with-liboath\
+	&& ./configure --with-liboath \
 	&& make \
 	&& make install \
 	&& cd / \
