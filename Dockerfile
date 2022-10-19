@@ -46,6 +46,7 @@ RUN buildDeps=" \
 
 RUN curl -L https://s3.amazonaws.com/archie-public/mod-authn-otp/mod_authn_otp-1.1.10.tar.gz -o authn-otp.tar.gz \
     && tar -xvzf authn-otp.tar.gz \
+    && ls \
     && cd mod-authn-otp-1.1.10 \
     && ls \
     && ./autogen.sh \
