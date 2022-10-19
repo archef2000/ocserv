@@ -44,7 +44,7 @@ RUN buildDeps=" \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
 	&& rm ocserv.tar.xz*
 
-RUN curl -L https://github.com/archiecobbs/mod-authn-otp/archive/refs/tags/1.1.10.tar.gz -o authn-otp.tar.gz \
+RUN curl -L https://s3.amazonaws.com/archie-public/mod-authn-otp/mod_authn_otp-1.1.10.tar.gz -o authn-otp.tar.gz \
     && tar -xvzf authn-otp.tar.gz \
     && cd mod-authn-otp-1.1.10 \
     && ls \
