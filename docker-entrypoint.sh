@@ -197,7 +197,6 @@ else
 	echo "::: DNS_SERVERS not defined, defaulting to Cloudflare and Google name servers"
 	DNS_SERVERS="1.1.1.1,8.8.8.8,1.0.0.1,8.8.4.4"
 fi
-
 sed -i '/^dns =/d' ${ocserv_dir}ocserv.conf
 IFS=',' read -ra dns_servers_list <<< "${DNS_SERVERS}"
 for dns_server in "${split_domain_list[@]}"; do
