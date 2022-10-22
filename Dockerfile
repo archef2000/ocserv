@@ -70,7 +70,7 @@ RUN buildDeps=" \
 	&& make \
 	&& make install \
 	&& cd / \
-	&& rm -fr /usr/src/radcli \
+	&& rm -fr /usr/src/radcli 
 
 
 
