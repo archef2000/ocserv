@@ -66,7 +66,7 @@ RUN cd /usr/src/ocserv \
 				| xargs -r apk info --installed \
 				| sort -u \
 			)" \
-	&& apk add --update --virtual .run-deps $runDeps gnutls-utils iptables \
+	&& apk add --update --virtual .run-deps $runDeps gnutls-utils iptables libqrencode tzdata\
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
@@ -82,7 +82,8 @@ RUN chmod a+x /etc/ocserv/*.sh /etc/default/ocserv/*.sh
 WORKDIR /etc/ocserv
 
 COPY docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY generate_opt.sh /generate_opt.sh
+RUN chmod +x /entrypoint.sh /generate_opt.sh
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 4443
 EXPOSE 4443/udp
