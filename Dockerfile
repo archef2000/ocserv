@@ -96,8 +96,7 @@ RUN cd /usr/src/ocserv \
 				| xargs -r apk info --installed \
 				| sort -u \
 			)" \
-	&& apk add --update --virtual .run-deps $runDeps 
-	-utils iptables libqrencode tzdata\
+	&& apk add --update --virtual .run-deps $runDeps gnutls-utils iptables libqrencode tzdata\
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
