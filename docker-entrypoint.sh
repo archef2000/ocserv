@@ -2,7 +2,7 @@
 ocserv_dir=/etc/ocserv/
 if [ -z "$TZ" ]
 then
-	TZ=Europe/Berlin
+    TZ=Europe/Berlin
 fi
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 get_config_line(){
@@ -221,6 +221,9 @@ done
 
 if [ "${ENABLE_OTP_AUTH}" = "TRUE" ]; then
     bash /generate_opt.sh
+    set_config "auth" "plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]"
+else
+    set_config "auth" "plain[passwd=/etc/ocserv/ocpasswd]"
 fi
 
 run_server $@
