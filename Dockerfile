@@ -9,17 +9,24 @@ RUN buildDeps=" \
 		gawk \
 		geoip \
 		gnutls-dev \
+		gnutls \
+		gnutls-utils \
 		gpgme \
 		krb5-dev \
 		libc-dev \
 		libev-dev \
+		libev \
 		libnl3-dev \
 		libproxy \
 		libseccomp-dev \
+		libseccomp \
 		libtasn1 \
 		linux-headers \
 		linux-pam-dev \
+		linux-pam \
 		lz4-dev \
+		lz4-libs \
+		lz4 \
 		make \
 		oath-toolkit-liboath \
 		oath-toolkit-libpskc \
@@ -28,6 +35,7 @@ RUN buildDeps=" \
 		pcsc-lite-libs \
 		protobuf-c \
 		readline-dev \
+		readline \
 		scanelf \
 		stoken-dev \
 		tar \
@@ -36,23 +44,45 @@ RUN buildDeps=" \
 		tar \
 		apache2-dev \
         	openssl-dev \
+		openssl \
+		autoconf \
+		libtool \
+		automake \
+		abi-compliance-checker \
+		iptables \
+		libintl \
+		libnl3 \
 	"; \
 	set -x \
 	&& apk add --update --virtual .build-deps $buildDeps \
 	&& curl -SL "ftp://ftp.infradead.org/pub/ocserv/ocserv-$OC_VERSION.tar.xz" -o ocserv.tar.xz \
 	&& mkdir -p /usr/src/ocserv \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
-	&& rm ocserv.tar.xz*
+	&& rm ocserv.tar.xz* \
+
+	&& RADCLI_VERSION=`curl "https://api.github.com/repos/radcli/radcli/releases/latest" | sed -n 's/^.*"tag_name": "\(.*\)",$/\1/p'` \
+  	&& curl -SL "https://github.com/radcli/radcli/releases/download/$RADCLI_VERSION/radcli-$RADCLI_VERSION.tar.gz" -o radcli.tar.gz \
+	&& mkdir -p /usr/src/radcli \
+	&& tar -xf radcli.tar.gz -C /usr/src/radcli --strip-components=1 \
+	&& rm radcli.tar.gz* \
+	&& cd /usr/src/radcli \
+	&& ./configure --sysconfdir=/etc/ \
+	&& make \
+	&& make install \
+	&& cd / \
+	&& rm -fr /usr/src/radcli \
+
+
 
 RUN curl -L https://s3.amazonaws.com/archie-public/mod-authn-otp/mod_authn_otp-1.1.10.tar.gz -o authn-otp.tar.gz \
-    && tar -xvzf authn-otp.tar.gz \
-    && ls \
-    && cd mod_authn_otp-1.1.10 \
-    && ls \
-    && ./configure \
-    && make \
-    && cp genotpurl /usr/local/bin/ \
-    && chmod +x /usr/local/bin/genotpurl
+    	&& tar -xvzf authn-otp.tar.gz \
+    	&& ls \
+    	&& cd mod_authn_otp-1.1.10 \
+    	&& ls \
+    	&& ./configure \
+    	&& make \
+    	&& cp genotpurl /usr/local/bin/ \
+    	&& chmod +x /usr/local/bin/genotpurl
 
 RUN cd /usr/src/ocserv \
 	&& ./configure --with-liboath \
@@ -66,7 +96,8 @@ RUN cd /usr/src/ocserv \
 				| xargs -r apk info --installed \
 				| sort -u \
 			)" \
-	&& apk add --update --virtual .run-deps $runDeps gnutls-utils iptables libqrencode tzdata\
+	&& apk add --update --virtual .run-deps $runDeps 
+	-utils iptables libqrencode tzdata\
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
