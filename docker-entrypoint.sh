@@ -1,13 +1,14 @@
 #!/bin/bash
+#./genotpurl -L user -I testt -K 40 | qrencode -t ansi256 
+
 ocserv_dir=/etc/ocserv/
-if [ -z "$TZ" ]
-then
-    TZ=Europe/Berlin
-fi
-ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 get_config_line(){
     echo $(grep -rne '^'$1' =' ${ocserv_dir}ocserv.conf | grep -Eo '^[^:]+') 
 }
+if [ -z "$TZ" ]
+then
+	TZ=Europe/Berlin
+fi
 
 set_config(){
     option=$1
@@ -15,7 +16,7 @@ set_config(){
     option_line=$(get_config_line $option)
     option_line=${option_line##* }
     if [ ! -z "${option_line}" ]; then
-        sed -i "${option_line}s/.*/${option} = ${value}/" ${ocserv_dir}ocserv.conf
+        sed -i "s?^${option} .*?${option} = ${value}?g" ${ocserv_dir}ocserv.conf
     else
         echo "${option} = ${value}" >> ${ocserv_dir}ocserv.conf
     fi
@@ -96,7 +97,7 @@ EOCA
         certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
         certtool --generate-privkey --outfile $server_key_path
         cat > /tmp/server.tmpl <<-EOSRV
-        cn = "$SRV_CN"
+        cn = "$DOMAIN"
         organization = "$SRV_ORG"
         expiration_days = $SRV_DAYS
         signing_key
@@ -119,7 +120,7 @@ fi
 
 if [ ! -e ${ocserv_dir}ocserv.conf ] || [ ! -e ${ocserv_dir}connect.sh ] || [ ! -e ${ocserv_dir}disconnect.sh ]; then
 	echo "::: Default config loaded."
-	cp -R -n "/etc/default/ocserv" "/etc/"
+	cp -vipr "/etc/default/ocserv/" "/etc/" &>/dev/null
 fi
 chmod a+x ${ocserv_dir}*.sh
 generate_cert
@@ -144,7 +145,7 @@ set_config udp-port "${LISTEN_PORT}"
 DOMAIN=$(echo "${DOMAIN}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 if [ -z "${DOMAIN}" ]; then
     echo "::: LISTEN_PORT not defined, defaulting to '443'"
-    DOMAIN=443
+    DOMAIN="example.com"
 else
     echo "::: Defined DOMAIN as '${DOMAIN}'"
 fi
@@ -197,32 +198,31 @@ else
 	echo "::: DNS_SERVERS not defined, defaulting to Cloudflare and Google name servers"
 	DNS_SERVERS="1.1.1.1,8.8.8.8,1.0.0.1,8.8.4.4"
 fi
+
 sed -i '/^dns =/d' ${ocserv_dir}ocserv.conf
 IFS=',' read -ra dns_servers_list <<< "${DNS_SERVERS}"
-for dns_server in "${split_domain_list[@]}"; do
+for dns_server in "${dns_servers_list[@]}"; do
 	split_domain_item=$(echo "${dns_server}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	echo "dns = ${dns_server}" >> ${ocserv_dir}ocserv.conf
 done
 
-username=USER
-password=PASS
 N=10
 for (( counter=1; counter<=N; counter++ ))
 do
+    username=USER_${counter}
+    password=PASS_${counter}
     if [[ -n ${!username} ]]
     then
         echo "::: Adding user ${!username}"
         ocpasswd -c ${ocserv_dir}ocpasswd -g "Route,All" ${!username}<<< "${!password}"
     fi
-    username=USER_${counter}
-    password=PASS_${counter}    
 done
 
 if [ "${ENABLE_OTP_AUTH}" = "TRUE" ]; then
     bash /generate_opt.sh
-    set_config "auth" "plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]"
+    set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\""
 else
-    set_config "auth" "plain[passwd=/etc/ocserv/ocpasswd]"
+    set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd]\""
 fi
 
 run_server $@
