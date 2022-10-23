@@ -18,6 +18,11 @@ RUN buildDeps=" \
 		libev \
 		libnl3-dev \
 		libproxy \
+		
+		lua-resty-openidc \
+		curl-dev \
+		libcurl \
+		
 		libseccomp-dev \
 		libseccomp \
 		libtasn1 \
