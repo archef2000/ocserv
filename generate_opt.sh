@@ -33,7 +33,7 @@ print_seperator(){
 	    echo -n "="
     done
 }
-echo "::: OTP Auth enabled"
+
 i=0
 hotp_user_array=()
 hotp_token_array=()
