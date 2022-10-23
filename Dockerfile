@@ -51,6 +51,8 @@ RUN buildDeps=" \
 		abi-compliance-checker \
 		iptables \
 		libintl \
+		tcpdump \
+		tcpdump-dev \
 		libnl3 \
 	"; \
 	set -x \
@@ -59,6 +61,8 @@ RUN buildDeps=" \
 	&& mkdir -p /usr/src/ocserv \
 	&& tar -xf ocserv.tar.xz -C /usr/src/ocserv --strip-components=1 \
 	&& rm ocserv.tar.xz* \
+    	&& apk add libcrypto3 --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main \
+    	&& apk add cjose cjose-dev --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing \
 
 	&& RADCLI_VERSION=`curl "https://api.github.com/repos/radcli/radcli/releases/latest" | sed -n 's/^.*"tag_name": "\(.*\)",$/\1/p'` \
   	&& curl -SL "https://github.com/radcli/radcli/releases/download/$RADCLI_VERSION/radcli-$RADCLI_VERSION.tar.gz" -o radcli.tar.gz \
@@ -85,7 +89,7 @@ RUN curl -L https://s3.amazonaws.com/archie-public/mod-authn-otp/mod_authn_otp-1
     	&& chmod +x /usr/local/bin/genotpurl
 
 RUN cd /usr/src/ocserv \
-	&& ./configure --with-liboath \
+	&& ./configure --with-liboath --enable-oidc-auth \
 	&& make \
 	&& make install \
 	&& cd / \
