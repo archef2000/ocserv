@@ -52,7 +52,6 @@ RUN buildDeps=" \
 		iptables \
 		libintl \
 		tcpdump \
-		tcpdump-dev \
 		libnl3 \
 	"; \
 	set -x \
