@@ -218,7 +218,10 @@ do
     fi
 done
 
-if [ "${ENABLE_OTP_AUTH}" = "TRUE" ]; then
+AUTH_METHOD=${AUTH_METHOD^^}
+if [[ "${AUTH_METHOD}" == *"OTP"* ]]
+then
+    echo "::: Auth method set to \"TEXT+OTP\""
     bash /generate_opt.sh
     set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\""
 else
