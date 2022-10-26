@@ -1,5 +1,4 @@
 #!/bin/bash
-#./genotpurl -L user -I testt -K 40 | qrencode -t ansi256 
 
 ocserv_dir=/etc/ocserv/
 get_config_line(){
@@ -13,12 +12,14 @@ fi
 set_config(){
     option=$1
     value=$2
+    ocserv_file=$(awk '/^auth/&&c++ {next} 1' ${ocserv_dir}ocserv.conf)
+    echo "$ocserv_file" > ${ocserv_dir}ocserv.conf
     option_line=$(get_config_line $option)
     option_line=${option_line##* }
     if [ ! -z "${option_line}" ]; then
         sed -i "s?^${option} .*?${option} = ${value}?g" ${ocserv_dir}ocserv.conf
     else
-        echo "${option} = ${value}" >> ${ocserv_dir}ocserv.conf
+        echo -e "${option} = ${value}" >> ${ocserv_dir}ocserv.conf
     fi
 }
 
@@ -85,7 +86,6 @@ generate_cert(){
         certtool --generate-privkey --outfile $cert_dir/ca-key.pem
         cat > /tmp/ca.tmpl <<-EOCA
         cn = "$CA_CN"
-    
         organization = "$CA_ORG"
         serial = 1
         expiration_days = $CA_DAYS
@@ -94,7 +94,7 @@ generate_cert(){
         cert_signing_key
         crl_signing_key
 EOCA
-        certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca-cert.pem
+        certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
         certtool --generate-privkey --outfile $server_key_path
         cat > /tmp/server.tmpl <<-EOSRV
         cn = "$DOMAIN"
@@ -104,7 +104,7 @@ EOCA
         encryption_key
         tls_www_server
 EOSRV
-        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca-cert.pem \
+        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem \
 	--load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
     fi
 }
@@ -219,13 +219,53 @@ do
 done
 
 AUTH_METHOD=${AUTH_METHOD^^}
-if [[ "${AUTH_METHOD}" == *"OTP"* ]]
+if [[ "${AUTH_METHOD}" == *"OTP"* ]] && [[ "${AUTH_METHOD}" == *"TEXT"* ]]
 then
-    echo "::: Auth method set to \"TEXT+OTP\""
+    echo "::: Auth method set to \"TEXT+OTP\" auth"
     bash /generate_opt.sh
     set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\""
+    
+elif [[ "${AUTH_METHOD}" == *"CERT"* ]] && [[ "${AUTH_METHOD}" == *"OTP"* ]] && [[ "${AUTH_METHOD}" == *"TEXT"* ]]
+then
+    echo "::: Auth method set to \"TEXT+OTP+CERTIFICATE\" auth"
+    bash /generate_opt.sh
+    bash /gen_cert.sh
+    set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\" \nauth = \"certificate\""
+    
+elif [[ "${AUTH_METHOD}" == *"CERT"* ]] && [[ "${AUTH_METHOD}" == *"OTP"* ]]
+then
+    echo "::: Auth method set to \"OTP+CERTIFICATE\" auth"
+    bash /generate_opt.sh
+    bash /gen_cert.sh
+    set_config "auth" "\"plain[otp=/etc/ocserv/otp]\" \nauth = \"certificate\""
+    
+elif [[ "${AUTH_METHOD}" == *"CERT"* ]] && [[ "${AUTH_METHOD}" == *"TEXT"* ]]
+then
+    echo "::: Auth method set to \"TEXT+CERTIFICATE\" auth"
+    bash /gen_cert.sh
+    set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd]\" \nauth = \"certificate\""
+
+elif [[ "${AUTH_METHOD}" == *"CERT"* ]]
+then
+    echo "::: Auth method set to \"CERTIFICATE\" auth"
+    bash /gen_cert.sh
+    set_config "auth" "\"certificate\""
+
+elif [[ "${AUTH_METHOD}" == *"TEXT"* ]]
+then
+    echo "::: Auth method set to \"TEXT\" auth"
+    set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd]\""
+
+elif [[ "${AUTH_METHOD}" == *"OTP"* ]]
+then
+    echo "::: Auth method set to \"OTP\" auth"
+    bash /generate_opt.sh
+    set_config "auth" "\"plain[otp=/etc/ocserv/otp]\""
+    
 else
     set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd]\""
 fi
+
+
 
 run_server $@
