@@ -121,7 +121,8 @@ WORKDIR /etc/ocserv
 
 COPY docker-entrypoint.sh /entrypoint.sh
 COPY generate_opt.sh /generate_opt.sh
-RUN chmod +x /entrypoint.sh /generate_opt.sh
+COPY gen_cert.sh /gen_cert.sh
+RUN chmod +x /entrypoint.sh /generate_opt.sh /gen_cert.sh
 ENTRYPOINT ["/entrypoint.sh"]
 EXPOSE 4443
 EXPOSE 4443/udp
