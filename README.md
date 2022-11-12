@@ -32,7 +32,7 @@ $ docker run --privileged  -d \
 
 ```
 $ docker run --privileged  -d \
-              -v /your/config/path/:/config \
+              -v /your/config/path/:/etc/ocserv \
               -e "LISTEN_PORT=443" \
               -e "DNS_SERVERS=1.1.1.1,8.8.8.8,1.0.0.1,8.8.4.4" \
               -e "TUNNEL_MODE=split-include" \
@@ -44,7 +44,7 @@ $ docker run --privileged  -d \
 ```
 
 ## Advanced Configuration:
-This container allows for advanced configurations for power users who know what they are doing by **mounting the /config volume to a host directory**. Users can then drop in their own certs and modify the configuration. The **POWER_USER** environmental variable is required to stop the container from overwriting options set from container environment variables. Some advanced features include setting up site to site VPN links, User Groups, Proxy Protocol support and more.
+This container allows for advanced configurations for power users who know what they are doing by **mounting the /etc/ocserv volume to a host directory**. Users can then drop in their own certs and modify the configuration. The **POWER_USER** environmental variable is required to stop the container from overwriting options set from container environment variables. Some advanced features include setting up site to site VPN links, User Groups, Proxy Protocol support and more.
 
 # Variables
 ## Environment Variables
@@ -60,7 +60,7 @@ This container allows for advanced configurations for power users who know what 
 ## Volumes
 | Volume | Required | Function | Example |
 |----------|----------|----------|----------|
-| `/etc/ocserv` | No | OpenConnect config files | `/your/config/path/:/config`|
+| `/etc/ocserv` | No | OpenConnect config files | `/your/config/path/:/etc/ocserv`|
 
 ## Ports
 | Port | Proto | Required | Function | Example |
@@ -68,10 +68,20 @@ This container allows for advanced configurations for power users who know what 
 | `443` | TCP | Yes | OpenConnect server TCP listening port | `443:443/tcp`|
 | `443` | UDP | Yes | OpenConnect server UDP listening port | `443:443/udp`|
 
-## Add User/Change Password
+## Add User/Change Password with Variables
+Add users by adding var USER_$N and PASS_$N in the Environment Variables.
+Example:
+```
+    USER_1=test
+    PASS_1=test
+    CERT_1=test # For P12 cert if enabled.
+```
+
+
+## Add User/Change Password with commandline
 Add users by executing the following command on the host running the docker container
 ```
-docker exec -ti openconnect ocpasswd -c /config/ocpasswd user_1
+docker exec -ti openconnect ocpasswd -c /etc/ocserv/ocpasswd user_1
 Enter password:
 Re-enter password:
 ```
@@ -79,7 +89,7 @@ Re-enter password:
 ## Delete User
 Delete users by executing the following command on the host running the docker container
 ```
-docker exec -ti openconnect ocpasswd -c /config/ocpasswd -d user_1
+docker exec -ti openconnect ocpasswd -c /etc/ocserv/ocpasswd -d user_1
 ```
 
 ## Login and Logout Log Messages
