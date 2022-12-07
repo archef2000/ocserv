@@ -108,7 +108,7 @@ RUN cd /usr/src/ocserv \
 	&& apk del .build-deps \
 	&& rm -rf /var/cache/apk/* 
 	
-RUN apk add --update bash rsync ipcalc sipcalc ca-certificates rsyslog logrotate runit libseccomp\
+RUN apk add --update bash rsync libnl3 ipcalc sipcalc ca-certificates rsyslog logrotate runit libseccomp\
 	&& rm -rf /var/cache/apk/* 
 
 RUN update-ca-certificates
