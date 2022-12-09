@@ -222,20 +222,20 @@ AUTH_METHOD=${AUTH_METHOD^^}
 if [[ "${AUTH_METHOD}" == *"OTP"* ]] && [[ "${AUTH_METHOD}" == *"TEXT"* ]]
 then
     echo "::: Auth method set to \"TEXT+OTP\" auth"
-    bash /generate_opt.sh
+    bash /generate_otp.sh
     set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\""
     
 elif [[ "${AUTH_METHOD}" == *"CERT"* ]] && [[ "${AUTH_METHOD}" == *"OTP"* ]] && [[ "${AUTH_METHOD}" == *"TEXT"* ]]
 then
     echo "::: Auth method set to \"TEXT+OTP+CERTIFICATE\" auth"
-    bash /generate_opt.sh
+    bash /generate_otp.sh
     bash /gen_cert.sh
     set_config "auth" "\"plain[passwd=/etc/ocserv/ocpasswd,otp=/etc/ocserv/otp]\" \nauth = \"certificate\""
     
 elif [[ "${AUTH_METHOD}" == *"CERT"* ]] && [[ "${AUTH_METHOD}" == *"OTP"* ]]
 then
     echo "::: Auth method set to \"OTP+CERTIFICATE\" auth"
-    bash /generate_opt.sh
+    bash /generate_otp.sh
     bash /gen_cert.sh
     set_config "auth" "\"plain[otp=/etc/ocserv/otp]\" \nauth = \"certificate\""
     
@@ -259,7 +259,7 @@ then
 elif [[ "${AUTH_METHOD}" == *"OTP"* ]]
 then
     echo "::: Auth method set to \"OTP\" auth"
-    bash /generate_opt.sh
+    bash /generate_otp.sh
     set_config "auth" "\"plain[otp=/etc/ocserv/otp]\""
     
 else
