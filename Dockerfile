@@ -120,7 +120,7 @@ RUN chmod a+x /etc/ocserv/*.sh /etc/default/ocserv/*.sh
 WORKDIR /etc/ocserv
 
 COPY docker-entrypoint.sh /entrypoint.sh
-COPY generate_opt.sh /generate_opt.sh
+COPY generate_otp.sh /generate_otp.sh
 COPY gen_cert.sh /gen_cert.sh
 RUN chmod +x /entrypoint.sh /generate_opt.sh /gen_cert.sh
 ENTRYPOINT ["/entrypoint.sh"]
