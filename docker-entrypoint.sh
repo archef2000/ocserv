@@ -94,7 +94,7 @@ generate_cert(){
         cert_signing_key
         crl_signing_key
 EOCA
-        certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca.pem
+        certtool --generate-self-signed --load-privkey $cert_dir/ca-key.pem --template /tmp/ca.tmpl --outfile $cert_dir/ca-cert.pem
         certtool --generate-privkey --outfile $server_key_path
         cat > /tmp/server.tmpl <<-EOSRV
         cn = "$DOMAIN"
