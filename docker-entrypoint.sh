@@ -112,7 +112,7 @@ EOSRV
 if [ "$POWER_MODE" = "TRUE" ]; then
 	echo "::: POWER MODE activated"
 	generate_cert
-	run_server $@
+	exec $@
 else
 	POWER_MODE="FALSE"
 fi
