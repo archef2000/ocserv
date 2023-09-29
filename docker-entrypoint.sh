@@ -144,7 +144,7 @@ set_config udp-port "${LISTEN_PORT}"
 
 DOMAIN=$(echo "${DOMAIN}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 if [ -z "${DOMAIN}" ]; then
-    echo "::: LISTEN_PORT not defined, defaulting to '443'"
+    echo "::: DOMAIN not defined, defaulting to 'example.com'"
     DOMAIN="example.com"
 else
     echo "::: Defined DOMAIN as '${DOMAIN}'"
