@@ -104,7 +104,7 @@ EOCA
         encryption_key
         tls_www_server
 EOSRV
-        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca.pem \
+        certtool --generate-certificate --load-privkey $server_key_path --load-ca-certificate $cert_dir/ca-cert.pem \
 	--load-ca-privkey $cert_dir/ca-key.pem --template /tmp/server.tmpl --outfile $server_cert_path
     fi
 }
